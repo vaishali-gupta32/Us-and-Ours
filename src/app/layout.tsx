@@ -15,7 +15,7 @@ const quicksand = Quicksand({
 });
 
 export const metadata: Metadata = {
-  title: "Love Journal",
+  title: "Us and Ours",
   description: "A private space for our memories.",
 };
 

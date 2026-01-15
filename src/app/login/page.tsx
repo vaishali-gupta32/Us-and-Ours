@@ -63,7 +63,7 @@ export default function LoginPage() {
             >
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-extrabold text-rose-950 font-heading mb-2">
-                        Love Journal
+                        Us and Ours
                     </h1>
                     <p className="text-rose-800/60 font-medium">A private space for just the two of us.</p>
                 </div>

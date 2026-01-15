@@ -41,7 +41,7 @@ export function Sidebar() {
                 <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-500/30">
                     <Heart className="w-6 h-6 fill-current" />
                 </div>
-                <span className="font-extrabold text-2xl text-rose-950 tracking-tight font-heading">LDR</span>
+                <span className="font-extrabold text-2xl text-rose-950 tracking-tight font-heading">Us and Ours</span>
             </div>
 
             <nav className="flex-1 space-y-2">
