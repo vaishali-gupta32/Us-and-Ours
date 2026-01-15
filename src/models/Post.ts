@@ -6,6 +6,11 @@ const PostSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
+    coupleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Couple',
+        required: true,
+    },
     content: {
         type: String,
         required: [true, 'Please write something...'],

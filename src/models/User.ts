@@ -19,9 +19,14 @@ const UserSchema = new mongoose.Schema({
         type: String,
         default: '',
     },
-    partnerEmail: { // We will use this to link the two users
+    partnerEmail: { // Deprecated in favor of coupleId, keeping for backward compat
         type: String,
         default: '',
+    },
+    coupleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Couple',
+        default: null,
     }
 }, { timestamps: true });
 

@@ -22,7 +22,16 @@ export async function POST(req: NextRequest) {
 
         // Create JWT
         const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_change_me');
-        const token = await new SignJWT({ userId: user._id.toString(), email: user.email, name: user.name })
+
+        // Critical: Add coupleId to token
+        // If user has no coupleId (legacy users), create a dummy one or handle gracefully?
+        // Ideally we should alert them, but for now allow login, maybe they can't see posts.
+        const token = await new SignJWT({
+            userId: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            coupleId: user.coupleId ? user.coupleId.toString() : null
+        })
             .setProtectedHeader({ alg: 'HS256' })
             .setExpirationTime('30d')
             .sign(secret);
@@ -42,4 +51,10 @@ export async function POST(req: NextRequest) {
         console.error(error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
+}
+
+export async function DELETE(req: NextRequest) {
+    const response = NextResponse.json({ success: true });
+    response.cookies.delete('token');
+    return response;
 }

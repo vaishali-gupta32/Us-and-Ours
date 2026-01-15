@@ -2,13 +2,9 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
-import User from '@/models/User';
 import { jwtVerify } from 'jose';
 
-// Increase payload size limit if needed, but for App Router we handle this in next.config.ts usually?
-// Actually, App Router doesn't use the 'config' export for body size the same way as Pages router.
-// It relies on request.json() to handle it, but we might encounter edge cases with very large strings.
-
+// Helper to get full user payload including coupleId
 async function getUserFromToken(req: NextRequest) {
     const token = req.cookies.get('token')?.value;
     if (!token) return null;
@@ -16,7 +12,7 @@ async function getUserFromToken(req: NextRequest) {
     try {
         const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_key_change_me');
         const { payload } = await jwtVerify(token, secret);
-        return payload;
+        return payload as { userId: string, email: string, name: string, coupleId: string };
     } catch (e) {
         return null;
     }
@@ -28,12 +24,22 @@ export async function GET(req: NextRequest) {
         const user = await getUserFromToken(req);
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const posts = await Post.find({})
+        if (!user.coupleId) {
+            // Fallback for legacy users or users not in a couple yet
+            // Return empty or global posts? For privacy, let's return error or empty.
+            // Actually, let's just return posts authored by this user for safety
+            const posts = await Post.find({ author: user.userId }).populate('author', 'name avatar').sort({ date: -1 });
+            return NextResponse.json({ success: true, posts });
+        }
+
+        // Scoped Query: Only posts from this Couple
+        // Also ensuring sorting by date descending
+        const posts = await Post.find({ coupleId: user.coupleId })
             .sort({ date: -1 })
-            .limit(20)
+            .limit(50)
             .populate('author', 'name avatar');
 
-        return NextResponse.json({ success: true, posts });
+        return NextResponse.json({ success: true, posts, currentUser: user.userId });
     } catch (error) {
         console.error("GET Posts Error:", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -43,28 +49,33 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await dbConnect();
-        const userPayload = await getUserFromToken(req);
-        if (!userPayload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const user = await getUserFromToken(req);
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        // Explicitly parse JSON, if it fails due to size it will throw
+        // Enforce coupleId. If null, they cannot post.
+        if (!user.coupleId) {
+            return NextResponse.json({ error: 'You must be part of a Couple Room to post. Please Create or Join a room.' }, { status: 403 });
+        }
+
         const body = await req.json().catch(e => {
-            console.error("JSON Parse Error:", e);
             throw new Error("Payload too large or invalid JSON");
         });
 
         const { content, mood, images } = body;
 
         const post = await Post.create({
-            author: userPayload.userId,
+            author: user.userId,
+            coupleId: user.coupleId, // Critical: Tagging with Room ID
             content,
             mood,
             images
         });
 
-        return NextResponse.json({ success: true, post });
+        const populatedPost = await post.populate('author', 'name avatar');
+
+        return NextResponse.json({ success: true, post: populatedPost });
     } catch (error: any) {
         console.error("POST Post Error Details:", error);
-        // Return the actual error message to the client for debugging
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }

@@ -1,202 +1,176 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Countdown } from "@/components/Countdown";
-import { Plus, Heart, Music, Film, Calendar as CalendarIcon, ArrowRight, MoreHorizontal, Pencil, Trash2, Camera, CloudSun, MapPin } from "lucide-react";
+import { Plus, Heart, Music, Film, Calendar as CalendarIcon, MoreHorizontal, Pencil, Trash2, Camera, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import useSWR from "swr"; // Real-time polling
 
 interface Post {
     _id: string;
-    author: { name: string; avatar?: string };
+    author: { _id: string; name: string; avatar?: string };
     content: string;
     mood: string;
     images?: string[];
     date: string;
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export default function Dashboard() {
-    const [posts, setPosts] = useState<Post[]>([]);
     const router = useRouter();
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-    const fetchPosts = () => {
-        fetch('/api/posts').then(res => res.json()).then(data => {
-            if (data.success) setPosts(data.posts);
-        });
-    };
+    // Poll every 3 seconds for near-real-time updates
+    const { data: postsData, mutate: mutatePosts } = useSWR('/api/posts', fetcher, {
+        refreshInterval: 3000,
+        revalidateOnFocus: true
+    });
 
-    useEffect(() => {
-        fetchPosts();
-    }, []);
+    const { data: coupleData } = useSWR('/api/couple', fetcher, { revalidateOnFocus: false });
+
+    const posts: Post[] = postsData?.posts || [];
+    const currentUserId = postsData?.currentUser;
+    const secretCode = coupleData?.secretCode;
+    const isSolo = !coupleData?.partner2;
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this memory? 🥺')) return;
+        if (!confirm('Delete this memory?')) return;
         await fetch(`/api/posts/${id}`, { method: 'DELETE' });
-        setPosts(posts.filter(p => p._id !== id));
+        mutatePosts(); // Optimistic update or re-fetch
         setActiveMenu(null);
+    };
+
+    const copyCode = () => {
+        if (secretCode) {
+            navigator.clipboard.writeText(secretCode);
+            alert('Secret Code copied to clipboard! Share it with your partner. 💌');
+        }
     };
 
     const container = {
         hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-        }
+        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
-
     const item = {
-        hidden: { y: 30, opacity: 0 },
+        hidden: { y: 20, opacity: 0 },
         show: { y: 0, opacity: 1 }
     };
 
     return (
         <div className="min-h-screen p-4 md:p-8">
-            <motion.div
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="space-y-8"
-            >
-                {/* Top Header & Greeting */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <motion.div variants={container} initial="hidden" animate="show" className="space-y-8">
+
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                     <motion.div variants={item}>
-                        <h1 className="text-4xl md:text-6xl font-extrabold text-white drop-shadow-md">
-                            Good Evening, Love <span className="animate-pulse">✨</span>
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-md font-heading">
+                            Welcome Home <span className="animate-pulse">❤️</span>
                         </h1>
-                        <p className="text-white/80 font-medium text-lg mt-2">
-                            Here's what used to be just ours, now shared forever.
+                        <p className="text-white/80 font-medium text-lg mt-1">
+                            Your shared world, updated live.
                         </p>
                     </motion.div>
 
-                    <motion.div variants={item} className="flex gap-4">
+                    <motion.div variants={item}>
                         <Link href="/write">
-                            <button className="px-8 py-4 bg-white text-rose-600 rounded-full font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all text-lg flex items-center gap-2">
-                                <Plus className="w-6 h-6" /> Add Memory
+                            <button className="px-8 py-3 bg-white text-rose-600 rounded-full font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2">
+                                <Plus className="w-5 h-5" /> New Post
                             </button>
                         </Link>
                     </motion.div>
                 </div>
 
-                {/* Dashboard Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-
-                    {/* Left Column: Stats & Tools (Span 4) */}
                     <div className="md:col-span-4 space-y-6">
-                        {/* Countdown Widget */}
+                        {/* Secret Code Widget */}
+                        <motion.div variants={item}>
+                            <GlassCard className="p-6 bg-white/30 border-white/40 relative overflow-hidden group">
+                                {isSolo && <div className="absolute top-0 right-0 p-2"><span className="animate-pulse flex h-3 w-3 bg-rose-500 rounded-full"></span></div>}
+                                <p className="text-xs font-bold text-rose-900/60 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <UserCircle className="w-4 h-4" />
+                                    {isSolo ? 'Waiting for Partner...' : 'Connected'}
+                                </p>
+
+                                {secretCode ? (
+                                    <div className="text-center py-2" onClick={copyCode}>
+                                        <div className="text-3xl font-black text-rose-950 tracking-widest font-mono border-2 border-dashed border-rose-300/50 rounded-xl py-3 bg-white/30 cursor-pointer hover:bg-white/50 hover:scale-105 transition-all active:scale-95" title="Click to Copy">
+                                            {secretCode}
+                                        </div>
+                                        <p className="text-[10px] text-rose-900/50 font-bold mt-2 uppercase">Click to Copy Invitation Code</p>
+                                    </div>
+                                ) : (
+                                    <div className="animate-pulse h-12 bg-white/20 rounded-xl" />
+                                )}
+                            </GlassCard>
+                        </motion.div>
+
                         <motion.div variants={item}>
                             <div className="relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-rose-400 to-orange-400 blur-xl opacity-50 group-hover:opacity-70 transition-opacity rounded-3xl" />
+                                <div className="absolute inset-0 bg-gradient-to-br from-rose-400 to-orange-400 blur-xl opacity-40 rounded-3xl" />
                                 <GlassCard className="relative !bg-white/40 border-none !p-0 overflow-hidden">
-                                    <div className="p-6">
-                                        <Countdown />
-                                    </div>
+                                    <div className="p-6"><Countdown /></div>
                                 </GlassCard>
                             </div>
                         </motion.div>
 
-                        {/* Quick Links Grid */}
+                        {/* Quick Actions */}
                         <motion.div variants={item} className="grid grid-cols-2 gap-4">
-                            <Link href="/calendar">
-                                <GlassCard className="p-6 flex flex-col items-center justify-center gap-3 hover:bg-emerald-500/10 cursor-pointer h-32">
-                                    <CalendarIcon className="w-8 h-8 text-emerald-600" />
-                                    <span className="font-bold text-rose-900">Dates</span>
-                                </GlassCard>
-                            </Link>
-                            <Link href="/gallery">
-                                <GlassCard className="p-6 flex flex-col items-center justify-center gap-3 hover:bg-indigo-500/10 cursor-pointer h-32">
-                                    <ImageIcon className="w-8 h-8 text-indigo-600" />
-                                    <span className="font-bold text-rose-900">Gallery</span>
-                                </GlassCard>
-                            </Link>
-                            <Link href="/movies">
-                                <GlassCard className="p-6 flex flex-col items-center justify-center gap-3 hover:bg-purple-500/10 cursor-pointer h-32">
-                                    <Film className="w-8 h-8 text-purple-600" />
-                                    <span className="font-bold text-rose-900">Movies</span>
-                                </GlassCard>
-                            </Link>
-                            <Link href="/playlist">
-                                <GlassCard className="p-6 flex flex-col items-center justify-center gap-3 hover:bg-sky-500/10 cursor-pointer h-32">
-                                    <Music className="w-8 h-8 text-sky-600" />
-                                    <span className="font-bold text-rose-900">Music</span>
-                                </GlassCard>
-                            </Link>
+                            {[{ icon: CalendarIcon, label: 'Dates', href: '/calendar', color: 'emerald' }, { icon: Film, label: 'Movies', href: '/movies', color: 'purple' }, { icon: Music, label: 'Music', href: '/playlist', color: 'sky' }].map((action, i) => (
+                                <Link key={i} href={action.href}>
+                                    <GlassCard className="p-4 flex flex-col items-center justify-center gap-2 hover:bg-white/40 cursor-pointer h-24">
+                                        <action.icon className={`w-6 h-6 text-${action.color}-600`} />
+                                        <span className="font-bold text-rose-900 text-sm">{action.label}</span>
+                                    </GlassCard>
+                                </Link>
+                            ))}
                         </motion.div>
                     </div>
 
-                    {/* Right Column: Feed (Span 8) */}
+                    {/* Feed */}
                     <div className="md:col-span-8">
-                        <motion.div variants={item} className="mb-6 flex items-center justify-between">
-                            <h3 className="text-2xl font-bold text-rose-950/80">Recent Moments</h3>
-                            <div className="h-1 flex-1 bg-white/30 rounded-full mx-4" />
-                        </motion.div>
+                        <motion.div variants={item} className="mb-4"><h3 className="text-2xl font-bold text-rose-950/80">Live Feed</h3></motion.div>
 
                         {posts.length === 0 ? (
-                            <GlassCard className="p-12 text-center text-rose-900/50 italic">
-                                No memories recorded yet...
-                            </GlassCard>
+                            <GlassCard className="p-12 text-center text-rose-900/50 italic">No memories yet. Start writing!</GlassCard>
                         ) : (
                             <div className="columns-1 md:columns-2 gap-6 space-y-6">
-                                {posts.map((post) => (
-                                    <motion.div
-                                        key={post._id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        whileInView={{ opacity: 1, y: 0 }}
-                                        viewport={{ once: true }}
-                                        className="break-inside-avoid"
-                                    >
-                                        <GlassCard className="p-0 overflow-hidden hover:shadow-2xl transition-all duration-300 relative group">
-                                            {/* Edit/Delete Overlay */}
-                                            <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={(e) => { e.preventDefault(); handleDelete(post._id); }}
-                                                    className="p-2 bg-white rounded-full shadow-lg text-rose-500 hover:text-red-500"
-                                                    title="Delete Memory"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.preventDefault(); router.push(`/write?edit=${post._id}`); }}
-                                                    className="p-2 bg-white rounded-full shadow-lg text-rose-500 hover:text-blue-500 ml-2"
-                                                    title="Edit Memory"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                            </div>
-
-                                            {post.images && post.images.length > 0 && (
-                                                <div className="relative">
-                                                    <img src={post.images[0]} className="w-full h-auto object-cover" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </div>
-                                            )}
-
-                                            <div className="p-5">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <div className="px-3 py-1 bg-rose-100/50 rounded-full text-xs font-bold text-rose-700">
-                                                        {post.mood.charAt(0).toUpperCase() + post.mood.slice(1)}
-                                                    </div>
-                                                    <span className="text-xs text-rose-900/40 font-bold ml-auto">
-                                                        {new Date(post.date).toLocaleDateString()}
+                                {posts.map((post) => {
+                                    const isMe = post.author?._id === currentUserId;
+                                    return (
+                                        <motion.div key={post._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="break-inside-avoid">
+                                            <GlassCard className={`p-0 overflow-hidden hover:shadow-xl transition-all relative group ${isMe ? 'border-rose-200 bg-white/60' : 'border-indigo-100 bg-white/50'}`}>
+                                                {/* Author Badge */}
+                                                <div className="absolute top-3 left-3 z-10">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-sm ${isMe ? 'bg-rose-500 text-white' : 'bg-indigo-500 text-white'}`}>
+                                                        {isMe ? 'You' : (post.author?.name || 'Partner')}
                                                     </span>
                                                 </div>
-                                                <p className="text-rose-950 font-medium leading-relaxed">
-                                                    {post.content}
-                                                </p>
-                                            </div>
-                                        </GlassCard>
-                                    </motion.div>
-                                ))}
+
+                                                <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={(e) => { e.preventDefault(); handleDelete(post._id); }} className="p-2 bg-white rounded-full text-red-500 shadow-sm hover:bg-red-50"><Trash2 className="w-3 h-3" /></button>
+                                                </div>
+
+                                                {post.images && post.images.length > 0 && <img src={post.images[0]} className="w-full h-auto object-cover" />}
+
+                                                <div className="p-5 pt-8">
+                                                    <p className="text-rose-950 font-medium leading-relaxed mb-3">{post.content}</p>
+                                                    <div className="flex items-center justify-between border-t border-rose-900/5 pt-3">
+                                                        <span className="text-[10px] font-bold text-rose-400 bg-rose-50 px-2 py-1 rounded-md uppercase">{post.mood}</span>
+                                                        <span className="text-[10px] text-rose-900/40 font-bold">{new Date(post.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
+                                                </div>
+                                            </GlassCard>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
                 </div>
-
             </motion.div>
         </div>
     );
 }
-
-// Simple Icon component wrapper since lucide icons are components
-function ImageIcon(props: any) { return <Camera {...props} /> }
