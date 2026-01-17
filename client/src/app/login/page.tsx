@@ -38,15 +38,11 @@ export default function LoginPage() {
                 body: JSON.stringify(body),
             });
 
-            console.log('Response received:', res.status, res.statusText);
-
             // Check content type before parsing
             const contentType = res.headers.get('content-type');
-            console.log('Content-Type:', contentType);
 
             if (!contentType || !contentType.includes('application/json')) {
                 const text = await res.text();
-                console.error('Non-JSON response:', text.substring(0, 200));
                 throw new Error(`Server returned non-JSON response. Status: ${res.status}`);
             }
 
@@ -66,7 +62,6 @@ export default function LoginPage() {
             router.push('/dashboard');
             router.refresh();
         } catch (err: any) {
-            console.error('Login error:', err);
             setError(err.message);
         } finally {
             setLoading(false);
