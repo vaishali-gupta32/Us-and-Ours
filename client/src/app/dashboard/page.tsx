@@ -94,7 +94,7 @@ export default function Dashboard() {
                     </motion.div>
 
                     <motion.div variants={item} className="flex gap-3">
-                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/auth/google`} className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-full font-bold backdrop-blur-md transition-all flex items-center gap-2 border border-white/40">
+                        <a href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`} className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-full font-bold backdrop-blur-md transition-all flex items-center gap-2 border border-white/40">
                             <CalendarIcon className="w-5 h-5" /> Sync Cal
                         </a>
 
