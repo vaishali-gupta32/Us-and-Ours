@@ -16,14 +16,14 @@ import session from 'express-session';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 // Connect to Database
 connectDB();
 
 // Middleware
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: process.env.CLIENT_URL,
     credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
