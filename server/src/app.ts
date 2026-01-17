@@ -21,9 +21,26 @@ const PORT = process.env.PORT;
 // Connect to Database
 connectDB();
 
-// Middleware
+// Middleware - CORS with multiple origins support
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    process.env.CLIENT_URL,
+    'https://us-and-ours.vercel.app',
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Check if origin is in allowed list OR matches Vercel preview pattern
+        if (allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
     credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
