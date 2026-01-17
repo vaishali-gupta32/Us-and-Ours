@@ -22,24 +22,24 @@ router.get('/google/callback', (req, res, next) => {
     passport.authenticate('google', (err: any, user: any, info: any) => {
         if (err) {
             console.error('[Auth] Google callback error:', err);
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard?error=Authentication failed`);
+            return res.redirect(`${process.env.CLIENT_URL}/dashboard?error=Authentication failed`);
         }
 
         if (!user) {
             // Failed authentication - pass error message
             const message = info?.message || 'Authentication failed';
             console.log('[Auth] Google auth failed:', message);
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard?error=${encodeURIComponent(message)}`);
+            return res.redirect(`${process.env.CLIENT_URL}/dashboard?error=${encodeURIComponent(message)}`);
         }
 
         // Success - log in user
         req.logIn(user, (loginErr) => {
             if (loginErr) {
                 console.error('[Auth] Login error:', loginErr);
-                return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard?error=Login failed`);
+                return res.redirect(`${process.env.CLIENT_URL}/dashboard?error=Login failed`);
             }
             console.log('[Auth] ✅ Google login successful');
-            res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/dashboard?success=calendar_connected`);
+            res.redirect(`${process.env.CLIENT_URL}/dashboard?success=calendar_connected`);
         });
     })(req, res, next);
 });

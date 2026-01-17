@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-    const token = request.cookies.get('token')?.value;
     const { pathname } = request.nextUrl;
 
-    const publicRoutes = ['/login', '/public']; // /login is public
+    const publicRoutes = ['/login', '/public'];
     if (publicRoutes.some(route => pathname.startsWith(route))) {
         return NextResponse.next();
     }
@@ -15,10 +14,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    if (!token) {
-        return NextResponse.redirect(new URL('/login', request.url));
-    }
-
+    // Let backend API handle authorization via Bearer token
+    // (Frontend uses localStorage + Authorization header for cross-domain support)
     return NextResponse.next();
 }
 

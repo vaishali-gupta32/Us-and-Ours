@@ -96,7 +96,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
         const token = generateToken(user._id, user.email, user.name, user.coupleId);
         setCookie(res, token);
-        res.status(201).json(responseBody);
+
+        // Add token to response for cross-domain compatibility
+        const responseWithToken = { ...responseBody, token };
+        res.status(201).json(responseWithToken);
 
     } catch (error: any) {
         console.error(error);
@@ -122,7 +125,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
         const token = generateToken(user._id, user.email, user.name, user.coupleId);
         setCookie(res, token);
-        res.json({ success: true, user: { name: user.name, email: user.email } });
+        res.json({
+            success: true,
+            user: { name: user.name, email: user.email },
+            token // Send token in response for cross-domain compatibility
+        });
 
     } catch (error) {
         res.status(500).json({ error: 'Server error' });

@@ -56,6 +56,11 @@ export default function LoginPage() {
                 throw new Error(data.error || 'Authentication failed');
             }
 
+            // Save token to localStorage for cross-domain compatibility
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+            }
+
             // If created a room, maybe show the secret code? 
             // For now, simpler to just redirect to dashboard where we can show it.
             router.push('/dashboard');

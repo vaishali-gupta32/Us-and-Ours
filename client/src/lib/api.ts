@@ -11,9 +11,13 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     // Debug logging
     console.log('🌐 Fetching:', `${API_URL}${url}`);
 
-    // Merge headers
-    const headers = {
+    // Get token from localStorage for cross-domain auth
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
+    // Merge headers - add Authorization if token exists
+    const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...(options.headers || {})
     };
 
